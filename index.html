@@ -7,7 +7,14 @@
     <title>face_app</title>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <video id="video" autoplay playsinline style="display:none"></video>
+    <canvas id="canvas"></canvas>
+
+    <div id="controls">
+      <label><input type="checkbox" id="showLandmarks"> Landmarks</label>
+      <label><input type="checkbox" id="showRain"> Rain </label>
+      <label><input type="checkbox" id="showGlasses"> Glasses</label>
+    </div>
+    <script type="module" src="/src/app.ts"></script>
   </body>
 </html>
