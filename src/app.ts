@@ -1,12 +1,13 @@
 import './style.css'
 import { FaceMesh } from "@mediapipe/face_mesh";
-import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
+import { drawLandmarks } from "@mediapipe/drawing_utils";
 
 const video = document.getElementById("video") as HTMLVideoElement;
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d");
 
-const showLandmarks = document.getElementById("showLandmarks")
+const showLandmarks = document.getElementById("showLandmarks") as HTMLInputElement
+showLandmarks.checked = false
 
 const faceMesh = new FaceMesh({
   locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
@@ -67,7 +68,8 @@ async function startCamera() {
 
   // Process video frames continuously
   async function processVideo() {
-    if(showLandmarks.checked && showLandmarks){
+    if (!ctx || !canvas) return;
+    if(showLandmarks && showLandmarks.checked){
       try {
         await faceMesh.send({ image: video });
       } catch (e) {
