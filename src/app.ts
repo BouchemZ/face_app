@@ -2,6 +2,12 @@ import './style.css'
 import { FaceMesh } from "@mediapipe/face_mesh";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 
+const video = document.getElementById("video") as HTMLVideoElement;
+const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+const ctx = canvas.getContext("2d");
+
+const showLandmarks = document.getElementById("showLandmarks")
+
 const faceMesh = new FaceMesh({
   locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
 });
@@ -28,46 +34,56 @@ faceMesh.onResults((results) => {
   if (results.multiFaceLandmarks) {
     for (const landmarks of results.multiFaceLandmarks) {
       //drawConnectors(ctx, landmarks, FaceMesh.FACEMESH_TESSELATION, { color: "#C0C0C0", lineWidth: 1 });
-      drawLandmarks(ctx, landmarks, { color: "#FF0000", lineWidth: 1 });
+      drawLandmarks(ctx, landmarks, { color: "#00ff2aff", lineWidth: 0.1 });
     }
   }
   ctx.restore();
 });
 
-const video = document.getElementById("video") as HTMLVideoElement;
-const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d");
+  // Initialize webcam
+async function startCamera() {
+  const constraints: MediaStreamConstraints = {
+    video: { width: { ideal: 640 }, height: { ideal: 480 } },
+    audio: false
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  video.srcObject = stream;
+  video.muted = true;
+  video.playsInline = true;
 
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => {
-    if (!video) {
-      console.error("No #video element found");
-      return;
-    }
-
-    video.srcObject = stream;
-    // mute so autoplay is less likely to be blocked, then try to play
-    video.muted = true;
-    video.play().catch(() => {});
-
-    const startDrawing = () => {
-      if (!canvas || !ctx) return;
-      canvas.width = video.videoWidth || canvas.width;
-      canvas.height = video.videoHeight || canvas.height;
-
-      const draw = () => {
-        if (video.readyState >= 2) { // HAVE_CURRENT_DATA
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        }
-        requestAnimationFrame(draw);
-      };
-      requestAnimationFrame(draw);
-    };
-
-    video.onloadedmetadata = startDrawing;
-    if (video.readyState >= 1) startDrawing(); // in case metadata is already available
-  })
-  .catch((error) => {
-    console.error("Error accessing webcam:", error);
+  // Wait until video is ready
+  await new Promise((resolve) => {
+    video.onloadeddata = () => resolve(null);
   });
+  const w = video.videoWidth || 640;
+  const h = video.videoHeight || 480;
+
+  canvas.width = w;
+  canvas.height = h;
+
+  canvas.style.width = '640px';
+  canvas.style.height = '480px';
+  canvas.style.display = 'block';
+
+  // Process video frames continuously
+  async function processVideo() {
+    if(showLandmarks.checked && showLandmarks){
+      try {
+        await faceMesh.send({ image: video });
+      } catch (e) {
+        console.error("faceMesh.send error:", e);
+      }
+    } else {
+      // Landmarks disabled: just draw the raw video frame to the canvas
+      if (video.readyState >= 2) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+    }
+    requestAnimationFrame(processVideo);
+  }
+  processVideo();
+}
+
+// Start everything
+startCamera().catch((err) => console.error("Error starting camera:", err));
